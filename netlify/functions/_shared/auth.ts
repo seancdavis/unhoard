@@ -5,7 +5,16 @@ type RequireUserResult =
   | { user: User; response: null }
   | { user: null; response: Response };
 
+const DEV_USER: User = {
+  id: "dev-user",
+  email: "dev@unhoard.local",
+  name: "Dev User",
+};
+
 export async function requireUser(): Promise<RequireUserResult> {
+  if (process.env.NETLIFY_DEV === "true") {
+    return { user: DEV_USER, response: null };
+  }
   const user = await getUser();
   if (!user) {
     return {

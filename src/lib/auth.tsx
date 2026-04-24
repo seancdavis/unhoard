@@ -9,6 +9,12 @@ import {
   type User,
 } from "@netlify/identity";
 
+const DEV_USER: User = {
+  id: "dev-user",
+  email: "dev@unhoard.local",
+  name: "Dev User",
+};
+
 type AuthState = {
   user: User | null;
   loading: boolean;
@@ -19,10 +25,13 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(
+    import.meta.env.DEV ? DEV_USER : null,
+  );
+  const [loading, setLoading] = useState(!import.meta.env.DEV);
 
   useEffect(() => {
+    if (import.meta.env.DEV) return;
     let cancelled = false;
     (async () => {
       try {
@@ -48,8 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     user,
     loading,
-    signInWithGoogle: () => oauthLogin("google"),
+    signInWithGoogle: () => {
+      if (import.meta.env.DEV) {
+        setUser(DEV_USER);
+        return;
+      }
+      oauthLogin("google");
+    },
     signOut: async () => {
+      if (import.meta.env.DEV) {
+        setUser(null);
+        return;
+      }
       await nLogout();
       setUser(null);
     },
