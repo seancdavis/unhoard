@@ -1,0 +1,30 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA catch-all (must come after all other routes)
+[[redirects]]
+  from = "/img/thumb/:key"
+  to = "/.netlify/images?url=/uploads/:key&w=400&h=400&fit=cover&q=80"
+  status = 200
+
+[[redirects]]
+  from = "/img/card/:key"
+  to = "/.netlify/images?url=/uploads/:key&w=640&h=480&fit=cover&q=82"
+  status = 200
+
+[[redirects]]
+  from = "/img/full/:key"
+  to = "/.netlify/images?url=/uploads/:key&w=1600&q=88"
+  status = 200
+
+[[redirects]]
+  from = "/img/:key"
+  to = "/.netlify/images?url=/uploads/:key"
+  status = 200
+
+# Client-side routing fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

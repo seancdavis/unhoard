@@ -1,0 +1,35 @@
+{
+  "name": "unhoard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "netlify dev:exec drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.7.4",
+    "@netlify/database": "^0.7.0",
+    "@netlify/functions": "^5.2.0",
+    "@netlify/identity": "^1.0.0",
+    "@netlify/vite-plugin": "^2.11.7",
+    "drizzle-orm": "^1.0.0-beta.22",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "drizzle-kit": "^1.0.0-beta.23",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
+  }
+}
