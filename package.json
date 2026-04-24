@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "netlify dev:exec drizzle-kit migrate"
+    "db:migrate": "EXPERIMENTAL_NETLIFY_DB_ENABLED=1 netlify dev:exec drizzle-kit migrate"
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.4",
