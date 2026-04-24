@@ -19,7 +19,9 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getCollection: (id: string) =>
-    request<{ collection: Collection; items: Item[] }>(`/api/collections/${id}`),
+    request<{ collection: Collection; items: Item[]; wishlist: Item[] }>(
+      `/api/collections/${id}`,
+    ),
   updateCollection: (
     id: string,
     body: { name?: string; emoji?: string; accent?: string },
@@ -38,6 +40,7 @@ export const api = {
     notes?: string;
     tags?: string[];
     imageKey?: string | null;
+    isWishlist?: boolean;
   }) =>
     request<Item>("/api/items", {
       method: "POST",
@@ -51,6 +54,7 @@ export const api = {
       notes?: string;
       tags?: string[];
       imageKey?: string | null;
+      isWishlist?: boolean;
     },
   ) =>
     request<Item>(`/api/items/${id}`, {

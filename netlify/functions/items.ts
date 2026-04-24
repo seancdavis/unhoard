@@ -24,6 +24,7 @@ export default async (req: Request, _ctx: Context) => {
     notes?: string;
     tags?: unknown;
     imageKey?: string | null;
+    isWishlist?: boolean;
   };
 
   if (!body.collectionId || !body.name?.trim()) {
@@ -48,6 +49,7 @@ export default async (req: Request, _ctx: Context) => {
       tags: normalizeTags(body.tags),
       imageKey: body.imageKey?.slice(0, 200) || null,
       placeholderSeed: Math.floor(Math.random() * 360),
+      isWishlist: body.isWishlist === true,
     })
     .returning();
 

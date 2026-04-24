@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const collections = pgTable("collections", {
@@ -28,6 +29,7 @@ export const items = pgTable("items", {
   tags: text("tags").array().notNull().default([]),
   imageKey: varchar("image_key", { length: 200 }),
   placeholderSeed: integer("placeholder_seed").notNull().default(0),
+  isWishlist: boolean("is_wishlist").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

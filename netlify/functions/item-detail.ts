@@ -32,6 +32,7 @@ export default async (req: Request, ctx: Context) => {
       notes?: string;
       tags?: unknown;
       imageKey?: string | null;
+      isWishlist?: boolean;
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -41,6 +42,7 @@ export default async (req: Request, ctx: Context) => {
     if (body.imageKey !== undefined) {
       updates.imageKey = body.imageKey ? body.imageKey.slice(0, 200) : null;
     }
+    if (typeof body.isWishlist === "boolean") updates.isWishlist = body.isWishlist;
 
     const [updated] = await db
       .update(items)
