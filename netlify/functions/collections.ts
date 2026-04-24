@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/functions";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db, collections, items } from "../../db/index.js";
 import { requireUser, json } from "./_shared/auth.js";
 
@@ -19,7 +19,7 @@ export default async (req: Request, _ctx: Context) => {
     const counts = await db
       .select({ collectionId: items.collectionId, id: items.id })
       .from(items)
-      .where(eq(items.userId, user.id));
+      .where(and(eq(items.userId, user.id), eq(items.isWishlist, false)));
 
     const countByCollection = counts.reduce<Record<string, number>>((acc, row) => {
       acc[row.collectionId] = (acc[row.collectionId] ?? 0) + 1;

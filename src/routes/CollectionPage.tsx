@@ -9,13 +9,17 @@ import { api } from "../lib/api";
 import type { Collection, Item } from "../lib/types";
 import { ACCENT_HEX, type Accent } from "../lib/types";
 
+type Tab = "collection" | "wishlist";
+
 export default function CollectionPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<Item[] | null>(null);
+  const [wishlist, setWishlist] = useState<Item[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [addingItem, setAddingItem] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("collection");
+  const [adding, setAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [editingCollection, setEditingCollection] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -24,31 +28,34 @@ export default function CollectionPage() {
   useEffect(() => {
     api
       .getCollection(id)
-      .then(({ collection, items }) => {
+      .then(({ collection, items, wishlist }) => {
         setCollection(collection);
         setItems(items);
+        setWishlist(wishlist);
       })
       .catch((e) =>
         setError(e instanceof Error ? e.message : "Couldn't load collection"),
       );
   }, [id]);
 
+  const source = activeTab === "collection" ? items : wishlist;
+
   const allTags = useMemo(() => {
-    if (!items) return [];
+    if (!source) return [];
     const counts = new Map<string, number>();
-    for (const it of items) {
+    for (const it of source) {
       for (const t of it.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([tag, count]) => ({ tag, count }));
-  }, [items]);
+  }, [source]);
 
   const filtered = useMemo(() => {
-    if (!items) return [];
-    if (!activeTag) return items;
-    return items.filter((it) => it.tags.includes(activeTag));
-  }, [items, activeTag]);
+    if (!source) return [];
+    if (!activeTag) return source;
+    return source.filter((it) => it.tags.includes(activeTag));
+  }, [source, activeTag]);
 
   if (error) {
     return (
@@ -61,7 +68,7 @@ export default function CollectionPage() {
     );
   }
 
-  if (!collection || !items) {
+  if (!collection || !items || !wishlist) {
     return (
       <div>
         <Header />
@@ -75,6 +82,12 @@ export default function CollectionPage() {
   const accent =
     ACCENT_HEX[collection.accent as keyof typeof ACCENT_HEX] ?? ACCENT_HEX.tomato;
 
+  const switchTab = (tab: Tab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setActiveTag(null);
+  };
+
   const handleDeleteCollection = async () => {
     if (!confirm("Delete this whole collection and everything in it?")) return;
     try {
@@ -85,16 +98,44 @@ export default function CollectionPage() {
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!confirm("Remove this piece from the collection?")) return;
-    try {
-      await api.deleteItem(itemId);
+  const removeFromList = (itemId: string, fromWishlist: boolean) => {
+    if (fromWishlist) {
+      setWishlist((prev) => prev?.filter((it) => it.id !== itemId) ?? null);
+    } else {
       setItems((prev) => prev?.filter((it) => it.id !== itemId) ?? null);
+    }
+  };
+
+  const handleDeleteItem = async (item: Item) => {
+    const label = item.isWishlist ? "wish" : "piece";
+    if (!confirm(`Remove this ${label}?`)) return;
+    try {
+      await api.deleteItem(item.id);
+      removeFromList(item.id, item.isWishlist);
       setEditingItem(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Couldn't delete");
     }
   };
+
+  const handleMoveToCollection = async (item: Item) => {
+    setSubmitting(true);
+    try {
+      const updated = await api.updateItem(item.id, { isWishlist: false });
+      setWishlist((prev) => prev?.filter((it) => it.id !== item.id) ?? null);
+      setItems((prev) => [updated, ...(prev ?? [])]);
+      setEditingItem(null);
+      setActiveTab("collection");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't move");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addLabel = activeTab === "collection" ? "Add item" : "Add to wishlist";
+  const addTitle =
+    activeTab === "collection" ? "Add to the collection" : "Add to the wishlist";
 
   return (
     <div className="min-h-screen">
@@ -126,6 +167,9 @@ export default function CollectionPage() {
               </h1>
               <div className="mt-1 text-ink-soft font-medium">
                 {items.length === 1 ? "1 item" : `${items.length} items`}
+                {wishlist.length > 0 && (
+                  <> · {wishlist.length} on the wishlist</>
+                )}
               </div>
             </div>
           </div>
@@ -143,14 +187,29 @@ export default function CollectionPage() {
             >
               Delete
             </button>
-            <button className="btn-primary" onClick={() => setAddingItem(true)}>
-              <span className="text-lg">+</span> Add item
+            <button className="btn-primary" onClick={() => setAdding(true)}>
+              <span className="text-lg">+</span> {addLabel}
             </button>
           </div>
         </div>
 
+        <div className="mt-8 flex items-center gap-2 border-b-2 border-ink/10">
+          <TabButton
+            active={activeTab === "collection"}
+            onClick={() => switchTab("collection")}
+          >
+            Collection <span className="opacity-60">· {items.length}</span>
+          </TabButton>
+          <TabButton
+            active={activeTab === "wishlist"}
+            onClick={() => switchTab("wishlist")}
+          >
+            Wishlist <span className="opacity-60">· {wishlist.length}</span>
+          </TabButton>
+        </div>
+
         {allTags.length > 0 && (
-          <div className="mt-8 flex flex-wrap items-center gap-2">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-ink-soft mr-1">
               filter by tag:
             </span>
@@ -183,8 +242,10 @@ export default function CollectionPage() {
                   nothing tagged <strong>#{activeTag}</strong> in here yet.
                 </p>
               </div>
+            ) : activeTab === "collection" ? (
+              <EmptyCollection onAdd={() => setAdding(true)} />
             ) : (
-              <EmptyItems onAdd={() => setAddingItem(true)} />
+              <EmptyWishlist onAdd={() => setAdding(true)} />
             )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
@@ -203,24 +264,25 @@ export default function CollectionPage() {
         </div>
       </main>
 
-      <Modal
-        open={addingItem}
-        onClose={() => setAddingItem(false)}
-        title="Add to the collection"
-      >
+      <Modal open={adding} onClose={() => setAdding(false)} title={addTitle}>
         <ItemForm
           submitting={submitting}
           submitLabel="Add"
-          onCancel={() => setAddingItem(false)}
+          onCancel={() => setAdding(false)}
           onSubmit={async (values) => {
             setSubmitting(true);
             try {
               const created = await api.createItem({
                 collectionId: collection.id,
+                isWishlist: activeTab === "wishlist",
                 ...values,
               });
-              setItems((prev) => [created, ...(prev ?? [])]);
-              setAddingItem(false);
+              if (created.isWishlist) {
+                setWishlist((prev) => [created, ...(prev ?? [])]);
+              } else {
+                setItems((prev) => [created, ...(prev ?? [])]);
+              }
+              setAdding(false);
             } catch (e) {
               alert(e instanceof Error ? e.message : "Couldn't add");
             } finally {
@@ -233,7 +295,7 @@ export default function CollectionPage() {
       <Modal
         open={!!editingItem}
         onClose={() => setEditingItem(null)}
-        title="Edit item"
+        title={editingItem?.isWishlist ? "Edit wish" : "Edit item"}
       >
         {editingItem && (
           <div className="flex flex-col gap-4">
@@ -246,12 +308,22 @@ export default function CollectionPage() {
                 setSubmitting(true);
                 try {
                   const updated = await api.updateItem(editingItem.id, values);
-                  setItems(
-                    (prev) =>
-                      prev?.map((it) =>
-                        it.id === updated.id ? updated : it,
-                      ) ?? null,
-                  );
+                  const list = updated.isWishlist ? "wishlist" : "items";
+                  if (list === "wishlist") {
+                    setWishlist(
+                      (prev) =>
+                        prev?.map((it) =>
+                          it.id === updated.id ? updated : it,
+                        ) ?? null,
+                    );
+                  } else {
+                    setItems(
+                      (prev) =>
+                        prev?.map((it) =>
+                          it.id === updated.id ? updated : it,
+                        ) ?? null,
+                    );
+                  }
                   setEditingItem(null);
                 } catch (e) {
                   alert(e instanceof Error ? e.message : "Couldn't save");
@@ -260,12 +332,21 @@ export default function CollectionPage() {
                 }
               }}
             />
+            {editingItem.isWishlist && (
+              <button
+                className="btn-ghost text-sm self-start"
+                disabled={submitting}
+                onClick={() => handleMoveToCollection(editingItem)}
+              >
+                ✓ Move to collection
+              </button>
+            )}
             <button
               className="text-sm underline text-left"
               style={{ color: "var(--color-tomato-deep)" }}
-              onClick={() => handleDeleteItem(editingItem.id)}
+              onClick={() => handleDeleteItem(editingItem)}
             >
-              Delete this item
+              Delete this {editingItem.isWishlist ? "wish" : "item"}
             </button>
           </div>
         )}
@@ -302,7 +383,30 @@ export default function CollectionPage() {
   );
 }
 
-function EmptyItems({ onAdd }: { onAdd: () => void }) {
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`font-display text-lg font-semibold px-4 py-2 -mb-[2px] border-b-2 transition-colors ${
+        active
+          ? "border-ink text-ink"
+          : "border-transparent text-ink-soft hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyCollection({ onAdd }: { onAdd: () => void }) {
   return (
     <div
       className="zine-card p-10 md:p-14 text-center max-w-xl mx-auto"
@@ -317,6 +421,27 @@ function EmptyItems({ onAdd }: { onAdd: () => void }) {
       </p>
       <button className="btn-primary" onClick={onAdd}>
         Add an item
+      </button>
+    </div>
+  );
+}
+
+function EmptyWishlist({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div
+      className="zine-card p-10 md:p-14 text-center max-w-xl mx-auto"
+      style={{ transform: "rotate(-0.8deg)" }}
+    >
+      <div className="text-6xl mb-4 float-soft inline-block">✧</div>
+      <h2 className="font-display text-2xl font-semibold mb-2">
+        Nothing on the wishlist yet.
+      </h2>
+      <p className="text-ink-soft mb-6">
+        Stash the things you're hoping to track down. Move them over when they
+        arrive.
+      </p>
+      <button className="btn-primary" onClick={onAdd}>
+        Add to wishlist
       </button>
     </div>
   );

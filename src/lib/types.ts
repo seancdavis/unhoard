@@ -18,6 +18,7 @@ export type Item = {
   tags: string[];
   imageKey: string | null;
   placeholderSeed: number;
+  isWishlist: boolean;
   createdAt: string;
   updatedAt: string;
 };

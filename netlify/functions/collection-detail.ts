@@ -25,7 +25,10 @@ export default async (req: Request, ctx: Context) => {
       .where(and(eq(items.collectionId, id), eq(items.userId, user.id)))
       .orderBy(desc(items.createdAt));
 
-    return json({ collection: found, items: rows });
+    const collected = rows.filter((r) => !r.isWishlist);
+    const wishlist = rows.filter((r) => r.isWishlist);
+
+    return json({ collection: found, items: collected, wishlist });
   }
 
   if (req.method === "PATCH") {
